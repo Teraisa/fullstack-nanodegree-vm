@@ -1,0 +1,149 @@
+#Lesson 4
+#Deeper into sql
+(where I learned to create a sublime macro that let's me SHIFT+SPACE to get out of these brackets and whatnots)
+
+*5 Create table and types
+
+create table tablename (
+	column1 type [constraints],
+	column2 type [constraints],
+	...
+	[row constraints]);
+
+(types: text, integer, booleans, bit strings, dates and times, IP addresses, geometric shapes, XML, JSON, ranges, arrays, searchable documents, nul, real...)
+
+In Postgres:
+timestamptz = timestamp with the time zone
+
+*6 Creating and Dropping
+
+create database name [options];
+drop database [options];
+drop tablen name [options];
+
+CREATE DATABASE fishies;
+\c fishies (connect to fishies)
+
+*7 Declaring Primary Keys
+
+For single column primary key after column's type.
+
+create table students (
+	id serial primary key, 
+	name text
+	birthdate date);
+
+If you have multi column primary key put it after the columns in the table
+
+CREATE TABLE postal_places (
+	postal_code text,
+	country text,
+	name text,
+	primary key (postal_code, country)
+	);
+
+* Declaring Relationships
+(when you assign a type to a column, you are RESTRICTING what kinds of things can be put into them)
+
+CREATE TABLE sales (
+	sku text references products,
+	sale_date date,
+	count integer);
+
+'References' explain that a particular column should only have values that refer to the key of another table. 
+
+CREATE TABLE sales (
+	sku text references products (sku)
+	sale_date date,
+	count integer);
+
+References as a constraint is like "type checking" -- columns that are supposed to refer to each other are guaranteed to do so
+
+*9 Foreign Key
+A FOREIGN KEY is a key used to link two tables together.
+
+A FOREIGN KEY is a field (or collection of fields) in one table that refers to the PRIMARY KEY in another table.
+
+The table containing the foreign key is called the child table, and the table containing the candidate key is called the referenced or parent table.
+
+*10 Self Joins
+joins - derives from joining two or more from existing tables
+
+join to itself - like to have pairs of entries that have something in common (faster to do it in the database than to pull into your python code and scanning it there)
+
+CREATE TABLE residences (
+	id integer references students,
+	building text references buildings (name)
+	room text);
+
+select a.id, b.id, a.building, a.room
+       from residences as a, residences as b
+ where a.building = b.building
+   and a.room = b.room
+ order by a.building, a.room;
+
+ ___________
+
+ select id, building, room from residences;
+
+ ___________
+
+ select a.id, b.id, a.building, a.room
+    from residences as a, residences as b
+    where a.building = b.building
+    and a.room = b.room
+    and a.id < b.id
+    order by a.building, a.room;
+
+*11 Counting What isn't There
+
+REMINDER select count(*) from animals;
+-- returns the number of animals in the zoo
+
+select count(*) from animals where species = 'gorilla';
+-- returns the number of gorillas
+
+select species, count(*) from animals group by species;
+-- returns each species’ name and the number of animals of that species
+_______________
+
+select products.name, products.sku, count(*) as num
+  from products join sales
+    on products.sku = sales.sku
+  group by products.sku;
+
+IF YOU WANT to see a ZERO:
+select products.name, products.sku, count(sales.sku) as num
+  from products left join sales
+    on products.sku = sales.sku
+  group by products.sku;
+  _______________
+
+  *12 Subqueries
+
+ highest score per team:
+
+  select max(score)
+  	as bigscore
+  from mooseball
+  	group by team;
+
+ to find average score
+
+  select max(score)
+  	as bigscore
+  from mooseball
+  	group by team;
+  as maxes;
+
+scalar subquery
+SELECT name, (SELECT max(pop) FROM cities WHERE cities.state = states.name)
+    FROM states;
+
+*13 One Query Not Two
+
+Select name, weight
+	from players,
+	(select avg(weight) as av
+	from players) as answer
+where weight < avg;
